@@ -1,27 +1,3 @@
-//`include "pkg/riscv_pkg.sv"
-/* verilator lint_off IMPORTSTAR */
-
-
-// Aşağıda bulunan output siyalleri tasarladığınız risc-v işlemcinin log dosyalasını doldurmak için kullanılacak
-// yani örnek olarak update_o sinyali işlemcideki değişimin logunun basılması için valid sinyali olacak,
-// valid sinyaliniz 1 olduğunda reg_addr_o sinyalinde gelen bilgi log dosyasının ilgili kısımına düzgün
-// formatta basılacak.
-
-
-// 
-//  data_o ve addr_i sinyallerine bit uzunluğuna uygun "0" bağlayın.
-// 
-
-// retire terimi kullanma sebebimiz o cycle'daki işlemin bittiği noktada verilecek sinyaller olmasıdır.
-// Memory read ve write sinyali memory üzerindeki değişimi loglamanız içindir. Memory'nize bağlamak kendi 
-// tercihinize bağlıdır. Yani, memory'nizde değişim olacağını instructiondan anlayıp sinyal belirleyebilirsiniz.
-//
-
-//
-// Kurmanız beklenen sistemde asıl olan değişimleri anlamak ve göstermektir. İşlemci gibi büyük sistemlerin testlerini
-// waveform üzerinden yapmak imkansız olacağı için burada otomatik bir kontrol sistemine uyum sağlayacak bir kontrol loglama
-// sistemi kurmanız gerekiyor. İşlemci mimarisi öğrenmenizin yanında bu ödevin size kazandırmasını hedeflediğimiz şey budur.
-//
 module riscv_singlecycle
 #(
     parameter DMemInitFile  = "dmem.mem",       // data memory initialization file
@@ -80,8 +56,6 @@ logic [31:0]DMEM_address;
 logic [31:0]branch_address;
 logic [31:0]wr_data_RF;
 
-
-
 always_comb begin
     case({JAL_en , JALR_en , branch_feedback})
         3'b100:begin
@@ -111,17 +85,12 @@ PC PC(
     .out_o(PC_out)
 );
 
-
-
 assign PC_increment = PC_out + 4;
-
 
 IM IM(
     .IM_Address_i(PC_out),
     .IM_out_o(Inst)
 );
-
-
 
 Decoder Decoder(
     .Instr_i(Inst),
@@ -157,8 +126,6 @@ Control_Unit Control_Unit(
     .LUI_en(LUI_en)
 );
 
-
-
 RF RF(
     .clk_i(clk_i),
     .rst_ni(rstn_i),
@@ -170,14 +137,6 @@ RF RF(
     .rd1_o(rd1),
     .rd2_o(rd2)
 );
-
-
-
-
-
-
-
-
 
 always_comb begin
     case(store_type)
@@ -207,8 +166,6 @@ ALU ALU(
     .branch_feedback_o(branch_feedback)
 
 );
-
-
 
 always_comb begin
     case(store_type)
@@ -268,8 +225,6 @@ always_comb begin
     endcase
 end
 
-
-
 always_comb begin
     case({{JALR_en || JAL_en }, {write_en_DMEM || data_read} , AUIPC_en , LUI_en})
         4'b0001:begin
@@ -292,16 +247,5 @@ always_comb begin
         end
     endcase
 end
-
-assign pc_o = PC_out;
-assign instr_o = Inst;
-assign data_o = 0;
-assign update_o = rstn_i;
-assign reg_addr_o = rd;
-assign reg_data_o = wr_data_RF;
-assign mem_addr_o = ALU_result;
-assign mem_data_o = (load_type > 0 ) ? Load_Data_DMEM : store_type > 0 ?  rd2_store : 0;
-assign mem_wrt_o = write_en_DMEM;
-assign mem_read_o = data_read;
 
 endmodule
