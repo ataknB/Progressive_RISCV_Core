@@ -1,22 +1,22 @@
 module Control_Unit(
-    input logic [6:0]op_code_i,
-    input logic [2:0]funct3_i,
-    input logic [6:0]funct7_i,
+    input logic [6:0]op_code_i, //op code of instruction
+    input logic [2:0]funct3_i, //funct3 signal came from decoder
+    input logic [6:0]funct7_i, // funct7 singal that came from decoder
 
-    output logic write_en_rf_o,
-    output logic ImmSrc_o,// 0 = signed , 1 = unsigned
-    output logic MemWrite_o,
-    output logic [4:0]ALU_op_o,
-    output logic write_en_DMEM_i,
-    output logic [2:0]load_type_o,
-    output logic [1:0]store_type,
+    output logic write_en_rf_o, // Controls writing to rgeister file
+    output logic ImmSrc_o, // 0 = signed , 1 = unsigned
+    output logic [4:0]ALU_op_o, //Indicates ALU operations
+    output logic write_en_DMEM_i, //Controls writing to memory
+    output logic [2:0]load_type_o, //Controls loading type
+    output logic [1:0]store_type, //Controls storing type
+    output logic fence_en_o,
     output logic ALU_rd2_select_o, // 0 = rd2 , 1 = Imm
-    output logic branch_en,
-    output logic JAL_en_o,
-    output logic JALR_en_o,
-    output logic data_read,
-    output logic AUIPC_en,
-    output logic LUI_en
+    output logic branch_en, //Enables branches
+    output logic JAL_en_o, //Enables JAL command
+    output logic JALR_en_o, //Enables JALR command
+    output logic data_read, //Enables Data reaidng from DMEM
+    output logic AUIPC_en, //Enables AUIPC command
+    output logic LUI_en //Enables LUI command
 );
     /*
         add = 0
@@ -47,15 +47,13 @@ module Control_Unit(
         AUIPC_en = 0;
         LUI_en = 0;
         load_type_o = 0;
-        MemWrite_o = 0;
+        fence_en_o = 0;
         case(op_code_i)
 
             //L-Inst
             7'b00_0011:begin
                 write_en_rf_o = 1;
                 data_read = 1;
-                MemWrite_o = 0;
-                //Result_Src_o = 
                 write_en_DMEM_i = 0;
                 store_type = 0;
                 ALU_rd2_select_o = 1;
@@ -104,8 +102,6 @@ module Control_Unit(
             7'b001_0011:begin
                 data_read = 0;
                 write_en_rf_o = 1;
-                MemWrite_o = 0;
-                //Result_Src_o = 
                 write_en_DMEM_i = 0; 
                 store_type = 0;
                 ALU_rd2_select_o = 1;
@@ -167,7 +163,6 @@ module Control_Unit(
             data_read = 0;
                 write_en_rf_o = 1;
                 MemWrite_o = 0;
-                //Result_Src_o = 
                 write_en_DMEM_i = 0; 
                 store_type = 0;
                 ALU_rd2_select_o = 1;
@@ -182,10 +177,7 @@ module Control_Unit(
             7'b010_0011:begin
             data_read = 0;
                 write_en_rf_o = 0;
-                MemWrite_o = 0;
-                //Result_Src_o = 
                 write_en_DMEM_i = 1; 
-                //
                 ALU_rd2_select_o = 1;
                 branch_en = 0;
                 JAL_en_o = 0;
@@ -214,8 +206,6 @@ module Control_Unit(
                 LUI_en = 1;
                 data_read = 0;
                 write_en_rf_o = 1;
-                MemWrite_o = 0;
-                //Result_Src_o = 
                 write_en_DMEM_i = 0; 
                 store_type = 0;
                 ALU_rd2_select_o = 1;
@@ -230,8 +220,6 @@ module Control_Unit(
             7'b011_0011:begin
             data_read = 0;
                 write_en_rf_o = 1;
-                MemWrite_o = 0;
-                //Result_Src_o = 
                 write_en_DMEM_i = 0; 
                 store_type = 0;
                 ALU_rd2_select_o = 0;
@@ -302,8 +290,6 @@ module Control_Unit(
             7'b1100011:begin
                 data_read = 0;
                 write_en_rf_o = 0;
-                MemWrite_o = 0;
-                //Result_Src_o = 
                 write_en_DMEM_i = 0; 
                 store_type = 0;
                 ALU_rd2_select_o = 0;
@@ -347,8 +333,6 @@ module Control_Unit(
             7'b1100111:begin
                     data_read = 0;
                     write_en_rf_o = 1;
-                    MemWrite_o = 0;
-                    //Result_Src_o = 
                     write_en_DMEM_i = 0; 
                     store_type = 0;
                     ALU_rd2_select_o = 1;
@@ -364,8 +348,6 @@ module Control_Unit(
             7'b1101111:begin
                     data_read = 0;
                     write_en_rf_o = 1;
-                    MemWrite_o = 0;
-                    //Result_Src_o = 
                     write_en_DMEM_i = 0; 
                     store_type = 0;
                     ALU_rd2_select_o = 1;
@@ -375,11 +357,55 @@ module Control_Unit(
                     JALR_en_o = 0;
                     ALU_op_o = 0;
             end
+
+            //FENCE
+            7'b0001111:begin
+                    case(funct3_i)
+                        3'b000:begin
+                            data_read = 0;
+                            write_en_rf_o = 1;
+                            write_en_DMEM_i = 0; 
+                            store_type = 0;
+                            ALU_rd2_select_o = 1;
+                            branch_en = 0;
+                            JAL_en_o = 1;
+                            ImmSrc_o = 0;
+                            JALR_en_o = 0;
+                            ALU_op_o = 0;
+                        end 
+
+                        3'b001:begin
+                            data_read = 0;
+                            write_en_rf_o = 1;
+                            write_en_DMEM_i = 0; 
+                            store_type = 0;
+                            ALU_rd2_select_o = 1;
+                            branch_en = 0;
+                            JAL_en_o = 1;
+                            ImmSrc_o = 0;
+                            JALR_en_o = 0;
+                            ALU_op_o = 0;
+                        end 
+
+                        default:begin
+                            data_read = 0;
+                            write_en_rf_o = 1;
+                            write_en_DMEM_i = 0; 
+                            store_type = 0;
+                            ALU_rd2_select_o = 1;
+                            branch_en = 0;
+                            JAL_en_o = 1;
+                            ImmSrc_o = 0;
+                            JALR_en_o = 0;
+                            ALU_op_o = 0;
+                        end
+                    endcase
+            end
+
+
             default:begin
                 data_read = 0;
                 write_en_rf_o = 0;
-                MemWrite_o = 0;
-                //Result_Src_o = 
                 write_en_DMEM_i = 0; 
                 store_type = 0;
                 ALU_rd2_select_o = 0;
